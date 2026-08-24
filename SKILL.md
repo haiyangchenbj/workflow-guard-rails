@@ -9,9 +9,12 @@ description: >
   crashes, and silent drift in LLM production systems. Trigger keywords:
   workflow safety, agent guard, pre-execution check, retry budget, idempotency,
   false success, audit log, drift detection, 工作流守护, 副作用队列, 漂移检测.
+  中文摘要：为多步骤 Agent 工作流加装七项护栏——执行前检查、检查点、副作用队列、预算
+  重试、结果验证、审计记录、规则沉淀，拦截假成功、重复发送与渐进漂移。触发词：工作流
+  守护、Agent 护栏、假成功拦截、重试预算、漂移检测.
 description_zh: 工作流守护：为多步骤 Agent 工作流加装七项护栏（执行前检查、检查点、副作用队列、预算重试、结果验证、审计记录、规则沉淀），拦截假成功、重复发送与渐进漂移
 description_en: Workflow Guardian
-version: "1.0.0"
+version: "1.0.1"
 agent_created: true
 read_when:
   - "workflow safety"
