@@ -14,8 +14,14 @@ description: >
   守护、Agent 护栏、假成功拦截、重试预算、漂移检测.
 description_zh: 工作流守护：为多步骤 Agent 工作流加装七项护栏（执行前检查、检查点、副作用队列、预算重试、结果验证、审计记录、规则沉淀），拦截假成功、重复发送与渐进漂移
 description_en: Workflow Guardian
-version: "1.0.1"
+version: "1.0.2"
 agent_created: true
+not_for:
+  - Single-shot prompts with no external side effects
+  - Pure data transforms already covered by unit tests
+  - Workflow authoring or design (use a design guide instead)
+  - Judgments requiring human taste or policy decisions (use a review skill)
+  - Monitoring external systems the workflow does not own
 read_when:
   - "workflow safety"
   - "agent guard"
