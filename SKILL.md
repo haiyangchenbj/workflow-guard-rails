@@ -1,20 +1,25 @@
 ---
-name: workflow-guardian
+name: workflow-guard-rails
 slug: workflow-guard-rails
-displayName: Workflow Guardian
+displayName: Workflow Guard Rails
 description: >
   Wrap multi-step agent workflows with pre-execution checks, side-effect queues,
   result validation, retry budgets, checkpointing, audit logs, and failure-rule
   accumulation. Prevents false successes, duplicate sends, unrecoverable
-  crashes, and silent drift in LLM production systems. Trigger keywords:
-  workflow safety, agent guard, pre-execution check, retry budget, idempotency,
-  false success, audit log, drift detection, 工作流守护, 副作用队列, 漂移检测.
+  crashes, and silent drift in LLM production systems. Use it when a workflow
+  sends, publishes, pays, deletes, or writes to another system, runs unattended
+  on a schedule, or must be safe to rerun after a mid-task failure. Trigger
+  keywords: workflow safety, workflow guardian, agent guard, guardrails,
+  pre-execution check, pre-flight check, retry budget, idempotency, false
+  success, duplicate send, checkpoint recovery, rerun safety, audit log, drift
+  detection, agent reliability, production guardrails, 工作流守护, Agent 护栏,
+  副作用队列, 漂移检测, 幂等, 防重复发送, 假成功, 断点恢复, 生产护栏, 重跑安全.
   中文摘要：为多步骤 Agent 工作流加装七项护栏——执行前检查、检查点、副作用队列、预算
   重试、结果验证、审计记录、规则沉淀，拦截假成功、重复发送与渐进漂移。触发词：工作流
-  守护、Agent 护栏、假成功拦截、重试预算、漂移检测.
-description_zh: 工作流守护：为多步骤 Agent 工作流加装七项护栏（执行前检查、检查点、副作用队列、预算重试、结果验证、审计记录、规则沉淀），拦截假成功、重复发送与渐进漂移
-description_en: Workflow Guardian
-version: "1.0.2"
+  守护、Agent 护栏、假成功拦截、防重复发送、重试预算、断点恢复、生产护栏、漂移检测.
+description_zh: 工作流守护护栏：为多步骤 Agent 工作流加装七项护栏（执行前检查、检查点、副作用队列、预算重试、结果验证、审计记录、规则沉淀），拦截假成功、重复发送与渐进漂移。适用于定时运行、无人值守、含发送/发布/写库等外部副作用、需要失败后安全重跑的工作流。触发词：工作流守护、Agent 护栏、假成功、防重复发送、幂等、断点恢复、生产护栏
+description_en: A horizontal safety layer for multi-step agent workflows — pre-execution checks, checkpointing, side-effect queues, retry budgets, result validation, audit logs, and rule accumulation.
+version: "1.0.3"
 agent_created: true
 not_for:
   - Single-shot prompts with no external side effects
@@ -24,27 +29,42 @@ not_for:
   - Monitoring external systems the workflow does not own
 read_when:
   - "workflow safety"
+  - "workflow guardian"
   - "agent guard"
+  - "guardrails"
   - "pre-execution check"
+  - "pre-flight check"
   - "retry budget"
   - "idempotency"
   - "false success"
+  - "duplicate send"
+  - "checkpoint recovery"
+  - "rerun safety"
   - "audit log"
   - "drift detection"
+  - "agent reliability"
   - "工作流守护"
   - "副作用队列"
   - "漂移检测"
+  - "幂等"
+  - "防重复发送"
+  - "断点恢复"
+  - "生产护栏"
 tags:
   - workflow
   - reliability
   - agent-safety
+  - guardrails
   - idempotency
   - human-in-the-loop
   - llm-ops
   - automation
+  - error-handling
+  - checkpoints
+  - production-readiness
 ---
 
-# Workflow Guardian
+# Workflow Guard Rails
 
 A horizontal safety layer for multi-step agent workflows. It does not replace the workflow logic — it wraps it with guards that catch what the workflow itself cannot see: a tool call that returns "success" but produced invalid output, a side effect that fired before validation, a retry that duplicated an external write, and drift that compounds across runs until the system collapses.
 
@@ -167,4 +187,4 @@ After each guarded run, emit:
 
 ---
 
-> **中文导语**：Workflow Guardian 是多步骤 Agent 工作流的安全护栏，形态为"固定工作流 + 守护 Skill"，不是自主 Agent。它通过七项守卫（执行前检查、检查点、副作用队列、预算重试、结果验证、审计记录、规则沉淀）拦截"假成功"、重复副作用、不可恢复崩溃和渐进漂移。当你说"这个自动化跑久了会不会哪天悄悄坏了""发出去的内容是不是真的验证过""重试会不会重复发"时，就应该用它。
+> **中文导语**：Workflow Guard Rails 是多步骤 Agent 工作流的安全护栏，形态为"固定工作流 + 守护 Skill"，不是自主 Agent。它通过七项守卫（执行前检查、检查点、副作用队列、预算重试、结果验证、审计记录、规则沉淀）拦截"假成功"、重复副作用、不可恢复崩溃和渐进漂移。当你说"这个自动化跑久了会不会哪天悄悄坏了""发出去的内容是不是真的验证过""重试会不会重复发"时，就应该用它。
