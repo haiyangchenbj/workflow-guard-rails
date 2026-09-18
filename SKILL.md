@@ -13,13 +13,18 @@ description: >
   pre-execution check, pre-flight check, retry budget, idempotency, false
   success, duplicate send, checkpoint recovery, rerun safety, audit log, drift
   detection, agent reliability, production guardrails, 工作流守护, Agent 护栏,
-  副作用队列, 漂移检测, 幂等, 防重复发送, 假成功, 断点恢复, 生产护栏, 重跑安全.
+  副作用队列, 漂移检测, 幂等, 防重复发送, 假成功, 断点恢复, 生产护栏, 重跑安全,
+  agent 自己跑, 无人值守, 自动化任务, 定时脚本, 日报, 盘前盘后, 出错后怎么办,
+  报错了, 又犯了, 查一下坑, 写前门禁, 沉淀规则, 教训写哪, 为什么反复犯.
+  Guard #7 (rule accumulation) writes into ~/.workbuddy/ERROR-PLAYBOOK.md
+  — the error knowledge base indexed by operation type. The agent appends confirmed
+  failures there in the same turn, without waiting for human approval.
   中文摘要：为多步骤 Agent 工作流加装七项护栏——执行前检查、检查点、副作用队列、预算
   重试、结果验证、审计记录、规则沉淀，拦截假成功、重复发送与渐进漂移。触发词：工作流
   守护、Agent 护栏、假成功拦截、防重复发送、重试预算、断点恢复、生产护栏、漂移检测.
 description_zh: 工作流守护护栏：为多步骤 Agent 工作流加装七项护栏（执行前检查、检查点、副作用队列、预算重试、结果验证、审计记录、规则沉淀），拦截假成功、重复发送与渐进漂移。适用于定时运行、无人值守、含发送/发布/写库等外部副作用、需要失败后安全重跑的工作流。触发词：工作流守护、Agent 护栏、假成功、防重复发送、幂等、断点恢复、生产护栏
 description_en: A horizontal safety layer for multi-step agent workflows — pre-execution checks, checkpointing, side-effect queues, retry budgets, result validation, audit logs, and rule accumulation.
-version: "1.0.3"
+version: "1.0.4"
 agent_created: true
 not_for:
   - Single-shot prompts with no external side effects
@@ -50,6 +55,17 @@ read_when:
   - "防重复发送"
   - "断点恢复"
   - "生产护栏"
+  - "agent 自己跑"
+  - "无人值守"
+  - "自动化任务"
+  - "定时脚本"
+  - "报错了"
+  - "又犯了"
+  - "查一下坑"
+  - "写前门禁"
+  - "沉淀规则"
+  - "教训写哪"
+  - "为什么反复犯"
 tags:
   - workflow
   - reliability
@@ -67,6 +83,38 @@ tags:
 # Workflow Guard Rails
 
 A horizontal safety layer for multi-step agent workflows. It does not replace the workflow logic — it wraps it with guards that catch what the workflow itself cannot see: a tool call that returns "success" but produced invalid output, a side effect that fired before validation, a retry that duplicated an external write, and drift that compounds across runs until the system collapses.
+
+## Position in the stack
+
+This skill is the **process host**. It decides *when* to check and *where* a confirmed failure goes. It carries no knowledge of specific errors.
+
+| Layer | What it holds | Who reads it |
+|---|---|---|
+| Resident | pointer in `~/.workbuddy/MEMORY.md`; gate line inlined into each automation prompt | every session, every unattended run — no trigger needed |
+| Process host (this skill) | timing, sequencing, side-effect control, retry budget, rule-accumulation gate | whenever a workflow with external effects starts |
+| Knowledge base | `~/.workbuddy/ERROR-PLAYBOOK.md` — concrete errors by operation type + recurrence board | queried at guard #1, #5, #7 |
+
+A skill that is never loaded guards nothing. Do not treat "a skill exists" as "the guard is active" — unattended runs are covered by the resident layer, not by this file.
+
+## Querying the knowledge base
+
+When guard #1 (pre-execution) or #5 (result validation) needs content, open `~/.workbuddy/ERROR-PLAYBOOK.md` and jump by operation type:
+
+| Operation | Section |
+|---|---|
+| Write JSON / YAML / frontmatter | §2.1 |
+| Write files (Edit / Write / scripts) | §2.2 |
+| Run shell commands | §2.3 |
+| Call APIs / network | §2.4 |
+| git | §2.5 |
+| Publish / sync skills | §2.6 |
+| Data handling / computation | §2.7 |
+| Content / layout | §2.8 |
+| Facts / images | §2.9 |
+
+Other anchors: **§1** recurrence board — errors seen 2+ times, read this first when tokens are tight; **§3** post-write verification and the six false-success receipts; **§4** attribution discipline.
+
+The playbook lives outside this skill directory on purpose. It is referenced by `~/.workbuddy/MEMORY.md` and by automation prompts that never load a skill, so its path must survive this skill being renamed, removed, or republished.
 
 ## When to use
 
@@ -91,7 +139,7 @@ A horizontal safety layer for multi-step agent workflows. It does not replace th
 | 4 | Retry budget | Rebirth on failure, capped retries, no local patches | Duplicate sends, partial corruption |
 | 5 | Result validation | Independent assertions, not "tool returned OK" | False success |
 | 6 | Audit log | Record steps, evidence, human confirmations | Lost context, undetectable drift |
-| 7 | Rule accumulation | Promote confirmed failures into new guard rules | Recurring, un-codified errors |
+| 7 | Rule accumulation | Append every confirmed failure into `~/.workbuddy/ERROR-PLAYBOOK.md` **in the same turn** | Recurring, un-codified errors |
 
 > **Detailed patterns**: for per-guard implementation details and example invariants by workflow type, load `references/guardian-patterns.md`.
 
@@ -134,7 +182,35 @@ External actions must never fire directly from a "success" signal. They enter a 
 
 ## Failure-rule accumulation (guard #7)
 
-When a failure mode is confirmed by a human, propose it as a new standing assertion. Recurring issues (e.g. a summary field that keeps exceeding length) should become permanent guards, not one-off fixes.
+This guard is the reason a workflow stops repeating the same mistake. Two parts:
+
+- **Where** — `~/.workbuddy/ERROR-PLAYBOOK.md`. The error knowledge base, indexed by **operation type** (write JSON/YAML/frontmatter, write files, run shell, call API, git, publish, compute, layout, facts/images). Do not create a second location.
+- **When** — in the same turn the failure is confirmed. Not at the end of the session, and not into a daily log.
+
+### The gate sits on the agent side
+
+This guard used to require human approval before a new rule could be activated. That gate never fired: most failures are discovered while the agent runs unattended (automations, scheduled jobs), where no human is present to approve anything. The rule library stayed empty for two months while the same errors recurred.
+
+**The gate is now on the agent side.** On a confirmed failure, append immediately:
+
+```
+现象 / 根因 / 可执行的正确做法 / 复发计数
+```
+
+If an entry for this failure already exists, increment the recurrence count; at count >= 2 promote it into the playbook's §1 recurrence board.
+
+Human review still exists, but as **rollback, not approval** — a bad rule can be deleted or corrected afterwards. The cost of one redundant rule is far below the cost of repeating a known error.
+
+### Why the daily log is not the sink
+
+Daily logs are organised by **date**; the retrieval key is **operation type**. The next time a JSON write fails, nothing leads back to a file named after a day in September. Experience organised by date is unretrievable experience.
+
+### Unattended runs
+
+Most errors are found by the agent itself, mid-run, with no human present to trigger anything. Two consequences:
+
+1. Pre-execution check (#1) and result validation (#5) must be **inlined into the automation prompt**. A skill that is never loaded guards nothing.
+2. A failure found during an unattended run is still confirmed — append it to the playbook within that same run, and state that you did so in the run output.
 
 ## Drift monitoring (guard #6)
 
@@ -182,7 +258,7 @@ After each guarded run, emit:
 4. Rebirth the whole unit on failure; local patches are forbidden.
 5. Retry budget is capped; when exhausted, stop and wait for human.
 6. Audit log must be written for every run, including failures.
-7. New guard rules require human approval before activation.
+7. Confirmed failures are appended to `~/.workbuddy/ERROR-PLAYBOOK.md` by the agent in the same turn; human review is rollback, not approval. Never depend on a human being present to trigger the write — most failures surface during unattended runs.
 8. Drift is tracked across runs, not judged on a single run.
 
 ---
