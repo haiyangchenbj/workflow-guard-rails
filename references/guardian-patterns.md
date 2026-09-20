@@ -88,7 +88,7 @@ Do not judge compliance on a single run. Track the compliance rate **across runs
 
 ## Pattern 7: Rule accumulation (guard #7)
 
-When a human confirms a failure mode, propose it as a new standing assertion.
+When a failure mode is confirmed, append it as a new standing assertion immediately — in the same run. There is no approval gate on the append; human review acts afterwards as rollback.
 
 Recurring issues (e.g. a summary field that keeps exceeding length) should become permanent guards, not one-off fixes. The guardian's rule set grows from real failures, not from speculation.
 
