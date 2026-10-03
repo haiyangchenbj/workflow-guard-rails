@@ -13,18 +13,18 @@ description: >
   pre-execution check, pre-flight check, retry budget, idempotency, false
   success, duplicate send, checkpoint recovery, rerun safety, audit log, drift
   detection, agent reliability, production guardrails, 工作流守护, Agent 护栏,
-  副作用队列, 漂移检测, 幂等, 防重复发送, 假成功, 断点恢复, 生产护栏, 重跑安全,
-  agent 自己跑, 无人值守, 自动化任务, 定时脚本, 日报, 盘前盘后, 出错后怎么办,
-  报错了, 又犯了, 查一下坑, 写前门禁, 沉淀规则, 教训写哪, 为什么反复犯.
-  Guard #7 (rule accumulation) writes into ~/.workbuddy/ERROR-PLAYBOOK.md
-  — the error knowledge base indexed by operation type. The agent appends confirmed
-  failures there in the same turn, without waiting for human approval.
+  副作用队列, 漂移检测, 幂等, 防重复发送, 假成功, 断点恢复, 生产护栏, 重跑安全.
+  Guard #7 (rule accumulation) captures confirmed failures in the same turn
+  into a staging file (~/.workbuddy/ERROR-PLAYBOOK.staging.md). Entries reach
+  the authoritative ~/.workbuddy/ERROR-PLAYBOOK.md only when the failure
+  recurs (count >= 2) or a human confirms the rule — durable global guidance
+  is never created by a single unreviewed append.
   中文摘要：为多步骤 Agent 工作流加装七项护栏——执行前检查、检查点、副作用队列、预算
   重试、结果验证、审计记录、规则沉淀，拦截假成功、重复发送与渐进漂移。触发词：工作流
   守护、Agent 护栏、假成功拦截、防重复发送、重试预算、断点恢复、生产护栏、漂移检测.
 description_zh: 工作流守护护栏：为多步骤 Agent 工作流加装七项护栏（执行前检查、检查点、副作用队列、预算重试、结果验证、审计记录、规则沉淀），拦截假成功、重复发送与渐进漂移。适用于定时运行、无人值守、含发送/发布/写库等外部副作用、需要失败后安全重跑的工作流。触发词：工作流守护、Agent 护栏、假成功、防重复发送、幂等、断点恢复、生产护栏
 description_en: A horizontal safety layer for multi-step agent workflows — pre-execution checks, checkpointing, side-effect queues, retry budgets, result validation, audit logs, and rule accumulation.
-version: "1.0.5"
+version: "1.0.6"
 agent_created: true
 not_for:
   - Single-shot prompts with no external side effects
@@ -55,17 +55,7 @@ read_when:
   - "防重复发送"
   - "断点恢复"
   - "生产护栏"
-  - "agent 自己跑"
-  - "无人值守"
-  - "自动化任务"
-  - "定时脚本"
-  - "报错了"
-  - "又犯了"
-  - "查一下坑"
-  - "写前门禁"
-  - "沉淀规则"
-  - "教训写哪"
-  - "为什么反复犯"
+  - "重跑安全"
 tags:
   - workflow
   - reliability
@@ -139,7 +129,7 @@ The playbook lives outside this skill directory on purpose. It is referenced by 
 | 4 | Retry budget | Rebirth on failure, capped retries, no local patches | Duplicate sends, partial corruption |
 | 5 | Result validation | Independent assertions, not "tool returned OK" | False success |
 | 6 | Audit log | Record steps, evidence, human confirmations | Lost context, undetectable drift |
-| 7 | Rule accumulation | Append every confirmed failure into `~/.workbuddy/ERROR-PLAYBOOK.md` **in the same turn** | Recurring, un-codified errors |
+| 7 | Rule accumulation | Capture every confirmed failure **in the same turn** into the staging file `~/.workbuddy/ERROR-PLAYBOOK.staging.md`; promote to the authoritative playbook on recurrence or human confirmation | Recurring, un-codified errors |
 
 > **Detailed patterns**: for per-guard implementation details and example invariants by workflow type, load `references/guardian-patterns.md`.
 
@@ -149,7 +139,7 @@ The playbook lives outside this skill directory on purpose. It is referenced by 
 2. **During execution**: emit checkpoints (guard #2) at each irreversible boundary.
 3. **Before any external action**: push it to the side-effect queue (guard #3). It stays queued until validation passes.
 4. **After generation/computation**: run independent assertions (guard #5). Any failure triggers rebirth within the retry budget (guard #4). Local patches are forbidden — rebirth the whole unit.
-5. **After success**: write the audit log (guard #6). Confirmed failures are appended to the knowledge base (guard #7) **in the same run** — human review is rollback, not approval.
+5. **After success**: write the audit log (guard #6). Confirmed failures are captured into the staging file (guard #7) **in the same run** — staging is immediate and reversible; promotion into the authoritative playbook is gated (recurrence or human confirmation).
 
 ## Human in the loop
 
@@ -158,7 +148,7 @@ Require explicit confirmation before:
 - Any irreversible or external action (send, publish, pay, delete, external write).
 - Low-confidence results.
 - Retry budget exhausted or validation still failing.
-- Overriding or deleting an accumulated rule. The append itself does not wait for approval — waiting is what kept the rule library empty.
+- Overriding or deleting an accumulated rule. Staging appends do not wait for approval — waiting is what kept the rule library empty. **Promotion** of a staged rule into the authoritative playbook does require a gate: either the failure recurs (count >= 2) or a human confirms the rule.
 
 ## Result validation pattern (guard #5)
 
@@ -184,22 +174,28 @@ External actions must never fire directly from a "success" signal. They enter a 
 
 This guard is the reason a workflow stops repeating the same mistake. Two parts:
 
-- **Where** — `~/.workbuddy/ERROR-PLAYBOOK.md`. The error knowledge base, indexed by **operation type** (write JSON/YAML/frontmatter, write files, run shell, call API, git, publish, compute, layout, facts/images). Do not create a second location.
-- **When** — in the same turn the failure is confirmed. Not at the end of the session, and not into a daily log.
+- **Where** — a two-stage store:
+  1. `~/.workbuddy/ERROR-PLAYBOOK.staging.md` — the **capture** file. Every confirmed failure is appended here in the same turn. Staging is cheap, reversible, and bounded: a wrong entry here never becomes durable guidance.
+  2. `~/.workbuddy/ERROR-PLAYBOOK.md` — the **authoritative** knowledge base, indexed by **operation type** (write JSON/YAML/frontmatter, write files, run shell, call API, git, publish, compute, layout, facts/images). Guards #1/#5 read only this file. Do not create a third location.
+- **When** — capture in the same turn the failure is confirmed. Not at the end of the session, and not into a daily log.
 
-### The gate sits on the agent side
+### The promotion gate
 
-This guard used to require human approval before a new rule could be activated. That gate never fired: most failures are discovered while the agent runs unattended (automations, scheduled jobs), where no human is present to approve anything. The rule library stayed empty for two months while the same errors recurred.
+A pure approval gate never worked: most failures are discovered while the agent runs unattended, where no human is present to approve anything — the rule library stayed empty for two months while the same errors recurred. A pure no-gate append is also wrong: it lets a single unreviewed entry durably shape every future run.
 
-**The gate is now on the agent side.** On a confirmed failure, append immediately:
+**The gate is therefore two-stage.** On a confirmed failure, append immediately to the staging file:
 
 ```
-现象 / 根因 / 可执行的正确做法 / 复发计数
+现象 / 根因 / 可执行的正确做法 / 复发计数 / 捕获时间
 ```
 
-If an entry for this failure already exists, increment the recurrence count; at count >= 2 promote it into the playbook's §1 recurrence board.
+A staged rule is promoted into the authoritative playbook when either:
+- the **same failure recurs** (recurrence count >= 2 — the pattern is proven, not hypothetical), or
+- a **human confirms** the rule (e.g. while reviewing the staging file, or when the next session opens the playbook and sees the staged entry).
 
-Human review still exists, but as **rollback, not approval** — a bad rule can be deleted or corrected afterwards. The cost of one redundant rule is far below the cost of repeating a known error.
+Promotion moves (not copies) the entry out of staging, so the staging file stays small and reviewable. Human review of staging is **promotion or deletion, not post-hoc cleanup of a live rule**.
+
+If an entry for this failure already exists in staging, increment the recurrence count in place; at count >= 2 promote it into the playbook's §1 recurrence board.
 
 ### Why the daily log is not the sink
 
@@ -210,7 +206,7 @@ Daily logs are organised by **date**; the retrieval key is **operation type**. T
 Most errors are found by the agent itself, mid-run, with no human present to trigger anything. Two consequences:
 
 1. Pre-execution check (#1) and result validation (#5) must be **inlined into the automation prompt**. A skill that is never loaded guards nothing.
-2. A failure found during an unattended run is still confirmed — append it to the playbook within that same run, and state that you did so in the run output.
+2. A failure found during an unattended run is still confirmed — capture it into the staging file within that same run, and state that you did so in the run output. If no human is present to promote it, the recurrence rule (count >= 2) is the gate.
 
 ## Drift monitoring (guard #6)
 
@@ -228,7 +224,7 @@ After each guarded run, emit:
 - Validation: ✅ / ❌ (assertions: X/Y passed)
 - Retries used: N / budget
 - Audit log: written / skipped
-- Rule appended: yes/no (entries written to the knowledge base this run)
+- Rule captured: yes/no (staged this run; promoted to the playbook: yes/no)
 - Verdict: ✅ released / ❌ held for human
 ```
 
@@ -248,7 +244,7 @@ After each guarded run, emit:
 | Retry budget exhausted | Stop, report failure, wait for human confirmation |
 | Side-effect queue blocked | Hold all queued actions; do not release until validation passes |
 | Audit log write fails | Continue the run but flag the missing audit entry; do not mark fully complete |
-| New rule appended | Append immediately and flag it in the run output; human review may roll it back afterwards |
+| New rule captured | Append to the staging file immediately and flag it in the run output; it reaches the authoritative playbook only via the promotion gate (recurrence or human confirmation) |
 
 ## Hard Rules
 
@@ -258,7 +254,7 @@ After each guarded run, emit:
 4. Rebirth the whole unit on failure; local patches are forbidden.
 5. Retry budget is capped; when exhausted, stop and wait for human.
 6. Audit log must be written for every run, including failures.
-7. Confirmed failures are appended to `~/.workbuddy/ERROR-PLAYBOOK.md` by the agent in the same turn; human review is rollback, not approval. Never depend on a human being present to trigger the write — most failures surface during unattended runs.
+7. Confirmed failures are captured into `~/.workbuddy/ERROR-PLAYBOOK.staging.md` by the agent in the same turn. The authoritative `~/.workbuddy/ERROR-PLAYBOOK.md` only gains an entry via the promotion gate: recurrence (count >= 2) or explicit human confirmation. Never let a single unreviewed append durably shape future runs — and never depend on a human being present to trigger the capture.
 8. Drift is tracked across runs, not judged on a single run.
 
 ---

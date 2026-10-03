@@ -53,9 +53,13 @@ Workflow Guardian 在这些边界上拦截。
 
 ```bash
 mkdir -p ~/.workbuddy
+# Pin 到 commit d945aee0 —— 可变的 main URL 是供应链风险。
+# 要升级 playbook 时，人工审阅后把 pin 指向新的 commit。
 curl -o ~/.workbuddy/ERROR-PLAYBOOK.md \
-  https://raw.githubusercontent.com/haiyangchenbj/error-playbook/main/ERROR-PLAYBOOK.md
+  https://raw.githubusercontent.com/haiyangchenbj/error-playbook/d945aee01384c6163beb287446147ce768d50661/ERROR-PLAYBOOK.md
 ```
+
+下载后先核验再使用：文件必须非空、以预期的 §0 结构开头；核验通过前不要让任何工作流依赖它。
 
 它按**操作类型**索引（写 JSON、跑 shell、调 API、git、发布、计算……），不按日期——错误的检索键
 是失败的那个操作。不要复制出第二份；副本必然漂移，而漂移的规则比没有规则更糟。
@@ -64,7 +68,7 @@ curl -o ~/.workbuddy/ERROR-PLAYBOOK.md \
 
 以下情况必须显式确认：首次高权限工具、任何不可逆/外部动作、低置信结果、重试预算耗尽。
 
-规则沉淀（守卫 #7）是刻意保留的例外：确认的失败在运行当场就写入，不等批准。多数失败是在无人值守运行中被发现的，那时没有人在场——正是这道批准闸门让规则库空置了两个月。
+规则沉淀（守卫 #7）采用**两段式**：确认的失败在运行当场写入暂存文件 `~/.workbuddy/ERROR-PLAYBOOK.staging.md`（不等批准——多数失败发生在无人值守运行中，那时没有人在场，纯批准闸门曾让规则库空置了两个月）。暂存条目只有通过晋升闸门才进入正式 `ERROR-PLAYBOOK.md`：同一失败复发（计数 ≥ 2），或人工确认。单次未经审阅的写入不允许成为持久全局规则。
 
 ## 输出
 

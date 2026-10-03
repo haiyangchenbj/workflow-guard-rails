@@ -88,9 +88,9 @@ Do not judge compliance on a single run. Track the compliance rate **across runs
 
 ## Pattern 7: Rule accumulation (guard #7)
 
-When a failure mode is confirmed, append it as a new standing assertion immediately — in the same run. There is no approval gate on the append; human review acts afterwards as rollback.
+When a failure mode is confirmed, capture it into the staging file (`~/.workbuddy/ERROR-PLAYBOOK.staging.md`) immediately — in the same run. Staging has no approval gate on purpose: waiting for a human is what starved the rule library for two months. But staging is not the authoritative store — a staged entry reaches `~/.workbuddy/ERROR-PLAYBOOK.md` only through the promotion gate: the failure recurs (count >= 2) or a human confirms the rule.
 
-Recurring issues (e.g. a summary field that keeps exceeding length) should become permanent guards, not one-off fixes. The guardian's rule set grows from real failures, not from speculation.
+Recurring issues (e.g. a summary field that keeps exceeding length) should become permanent guards, not one-off fixes. The guardian's rule set grows from real failures, not from speculation — and from proven failures, not single unreviewed observations.
 
 ---
 
