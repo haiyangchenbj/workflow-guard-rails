@@ -1,6 +1,6 @@
 ## Description:
 
-Wraps multi-step agent workflows with pre-execution checks, checkpoints, side-effect queues, bounded retries, result validation, audit logs, and staged failure rules.
+Wrap multi-step agent workflows with pre-execution checks, side-effect queues, result validation, retry budgets, checkpointing, audit logs, and failure-rule accumulation.
 
 This skill is ready for commercial/non-commercial use.
 
@@ -14,7 +14,7 @@ MIT-0
 
 ## Use Case:
 
-Developers and operators use this skill to guard unattended or multi-step agent workflows that send, publish, pay, delete, or write to external systems, and to make failures safer to retry and review.
+Developers and engineers use this skill to add preflight checks, checkpoint recovery, validation, and controlled handling of side effects to recurring or unattended agent workflows. It helps prevent false success and duplicate external actions while retaining an audit trail.
 
 ### Deployment Geography for Use:
 
@@ -22,37 +22,32 @@ Global
 
 ## Known Risks and Mitigations:
 
-Risk: Persistent failure rules outside the skill can influence later unattended runs.
+Risk: Setup may overwrite shared guidance.
 
-Mitigation: Inspect staged rules before promotion, limit permissions on ~/.workbuddy, and review the authoritative playbook regularly.
+Mitigation: Review the pinned companion before use and preserve any existing playbook.
 
-Risk: Audit and failure entries may retain sensitive workflow data.
+Risk: Automatically accumulated failure rules may affect future workflows.
 
-Mitigation: Redact secrets before recording audit or failure entries.
-
-Risk: The external companion playbook may introduce unreviewed guidance.
-
-Mitigation: Review the pinned download and verify its contents before using it in a workflow.
+Mitigation: Require human approval before generated rules become shared guidance.
 
 ## Reference(s):
 
-- [Workflow Guard Rails release](https://clawhub.ai/haiyangchenbj/skills/workflow-guard-rails)
-- [Guardian patterns](references/guardian-patterns.md)
-- [Pinned companion error playbook](https://raw.githubusercontent.com/haiyangchenbj/error-playbook/d945aee01384c6163beb287446147ce768d50661/ERROR-PLAYBOOK.md)
+- [Guardian Patterns](references/guardian-patterns.md)
+- [Pinned ERROR-PLAYBOOK companion](https://raw.githubusercontent.com/haiyangchenbj/error-playbook/d945aee01384c6163beb287446147ce768d50661/ERROR-PLAYBOOK.md)
 
 ## Skill Output:
 
-**Output Type(s):** [Markdown, Guidance, Configuration instructions]
+**Output Type(s):** [Guidance, Markdown, Files]
 
-**Output Format:** [Markdown guardian report and workflow guidance]
+**Output Format:** [Markdown Guardian Report with checkpoints, side-effect status, validation results, retry status, audit logs, and staged failure rules]
 
 **Output Parameters:** [1D]
 
-**Other Properties Related to Output:** [Reports checks, queued and executed side effects, validation, retries, audit status, staged rules, and release or hold verdict.]
+**Other Properties Related to Output:** [The side-effect queue only protects actions routed through it. Human confirmation is required for high-privilege or irreversible actions, low-confidence results, exhausted retry budgets, and shared rule promotion.]
 
 ## Skill Version(s):
 
-1.0.6 (source: SKILL.md frontmatter and server release)
+1.0.7 (source: frontmatter)
 
 ## Ethical Considerations:
 
