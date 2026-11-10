@@ -24,7 +24,7 @@ description: >
   守护、Agent 护栏、假成功拦截、防重复发送、重试预算、断点恢复、生产护栏、漂移检测.
 description_zh: 工作流守护护栏：为多步骤 Agent 工作流加装七项护栏（执行前检查、检查点、副作用队列、预算重试、结果验证、审计记录、规则沉淀），拦截假成功、重复发送与渐进漂移。适用于定时运行、无人值守、含发送/发布/写库等外部副作用、需要失败后安全重跑的工作流。触发词：工作流守护、Agent 护栏、假成功、防重复发送、幂等、断点恢复、生产护栏
 description_en: A horizontal safety layer for multi-step agent workflows — pre-execution checks, checkpointing, side-effect queues, retry budgets, result validation, audit logs, and rule accumulation.
-version: "1.0.7"
+version: "1.0.8"
 agent_created: true
 not_for:
   - Single-shot prompts with no external side effects
@@ -162,7 +162,7 @@ After the workflow produces output:
   4. Retry budget reached → report failure, stop, wait for human
 ```
 
-Key invariants to assert depend on the workflow: field completeness, length limits, format contracts, JSON schema, non-empty critical sections, count equality (e.g. items == summaries).
+Key invariants to assert depend on the workflow: field completeness, length limits, format contracts, JSON schema, non-empty critical sections, count equality (e.g. items == summaries), and absence of the broken form (unreplaced placeholders, stale markers, duplicate items).
 
 **Boundary trap**: when asserting `A == B`, also assert `A > 0`. Otherwise `A == B == 0` passes but is clearly broken.
 
