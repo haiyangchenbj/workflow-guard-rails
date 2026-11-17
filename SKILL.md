@@ -24,7 +24,7 @@ description: >
   守护、Agent 护栏、假成功拦截、防重复发送、重试预算、断点恢复、生产护栏、漂移检测.
 description_zh: 工作流守护护栏：为多步骤 Agent 工作流加装七项护栏（执行前检查、检查点、副作用队列、预算重试、结果验证、审计记录、规则沉淀），拦截假成功、重复发送与渐进漂移。适用于定时运行、无人值守、含发送/发布/写库等外部副作用、需要失败后安全重跑的工作流。触发词：工作流守护、Agent 护栏、假成功、防重复发送、幂等、断点恢复、生产护栏
 description_en: A horizontal safety layer for multi-step agent workflows — pre-execution checks, checkpointing, side-effect queues, retry budgets, result validation, audit logs, and rule accumulation.
-version: "1.0.8"
+version: "1.0.9"
 agent_created: true
 not_for:
   - Single-shot prompts with no external side effects
@@ -139,7 +139,7 @@ The playbook lives outside this skill directory on purpose. It is referenced by 
 2. **During execution**: emit checkpoints (guard #2) at each irreversible boundary.
 3. **Before any external action**: push it to the side-effect queue (guard #3). It stays queued until validation passes.
 4. **After generation/computation**: run independent assertions (guard #5). Any failure triggers rebirth within the retry budget (guard #4). Local patches are forbidden — rebirth the whole unit.
-5. **After success**: write the audit log (guard #6). Confirmed failures are captured into the staging file (guard #7) **in the same run** — staging is immediate and reversible; promotion into the authoritative playbook is gated (recurrence or human confirmation).
+5. **After success**: write the audit log (guard #6). Confirmed failures are captured into the staging file (guard #7) **in the same turn the failure is confirmed** — staging is immediate and reversible; promotion into the authoritative playbook is gated (recurrence or human confirmation).
 
 ## Human in the loop
 
